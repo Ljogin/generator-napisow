@@ -111,43 +111,61 @@ if uploaded:
     st.video(uploaded)
     video_tmp = save_uploaded_file_to_temp(uploaded)
 
-    st.divider()
-    st.subheader("2) Wyodrębnij audio z wideo")
-    col1, col2 = st.columns(2)
-    with col1:
-        do_extract = st.button("🔊 Wyodrębnij audio (MP3)", type="primary")
-    with col2:
-        resp_format = st.selectbox("Format napisów:", ["srt", "text"], index=0)
+    # Jeśli krok nie jest jeszcze ustawiony, ustaw krok 2
+    if "step" not in st.session_state:
+        st.session_state["step"] = "extract_audio"
 
-    if do_extract:
-        try:
-            audio_mp3_path = extract_audio_to_mp3(video_tmp)
-            st.audio(str(audio_mp3_path), format="audio/mp3")
-            st.success("Audio wyodrębnione ✔️")
+    # ────────────────────────────────
+    # KROK 2 – wyodrębnij audio
+    # ────────────────────────────────
+    if st.session_state["step"] == "extract_audio":
+        st.divider()
+        st.subheader("2) Wyodrębnij audio z wideo")
+        col1, col2 = st.columns(2)
+        with col1:
+            do_extract = st.button("🔊 Wyodrębnij audio (MP3)", type="primary")
+        with col2:
+            resp_format = st.selectbox("Format napisów:", ["srt", "text"], index=0)
 
-            st.divider()
-            st.subheader("3) Generuj napisy (Whisper-1)")
+        if do_extract:
+            try:
+                audio_mp3_path = extract_audio_to_mp3(video_tmp)
+                st.audio(str(audio_mp3_path), format="audio/mp3")
+                st.success("Audio wyodrębnione ✔️")
 
-            if st.button("🧠 Transkrybuj audio", type="primary"):
-                with st.spinner("Transkrypcja w toku…"):
-                    captions = transcribe_audio(audio_mp3_path)
-                st.success("Transkrypcja zakończona ✔️")
+                # Zapisz ścieżkę do audio i przejdź do kroku 3
+                st.session_state["audio_path"] = str(audio_mp3_path)
+                st.session_state["resp_format"] = resp_format
+                st.session_state["step"] = "transcribe"
+                st.experimental_rerun()
 
-                # ✅ Zamiast edycji i dalszych kroków — tylko pobranie + powrót
-                st.download_button(
-                    "⬇️ Pobierz napisy",
-                    bytes_for_download(captions),
-                    file_name="captions.srt" if resp_format == "srt" else "captions.txt",
-                    mime="text/plain",
-                )
+            except Exception as e:
+                st.error(f"Wystąpił błąd: {e}")
 
-                st.info("✅ Napisy zostały wygenerowane. Możesz wrócić i przetworzyć kolejne wideo.")
+    # ────────────────────────────────
+    # KROK 3 – transkrybuj audio
+    # ────────────────────────────────
+    elif st.session_state["step"] == "transcribe":
+        st.divider()
+        st.subheader("3) Generuj napisy (Whisper-1)")
 
-                if st.button("⬅️ Powrót do kroku 2 (Wyodrębnij audio)"):
-                    st.session_state["step"] = "extract_audio"
-                    st.experimental_rerun()
+        if st.button("🧠 Transkrybuj audio", type="primary"):
+            with st.spinner("Transkrypcja w toku…"):
+                captions = transcribe_audio(Path(st.session_state["audio_path"]))
+            st.success("Transkrypcja zakończona ✔️")
 
-        except Exception as e:
-            st.error(f"Wystąpił błąd: {e}")
+            st.download_button(
+                "⬇️ Pobierz napisy",
+                bytes_for_download(captions),
+                file_name="captions.srt" if st.session_state["resp_format"] == "srt" else "captions.txt",
+                mime="text/plain",
+            )
+
+            st.info("✅ Napisy zostały wygenerowane. Możesz wrócić do kroku 2 i przetworzyć kolejne wideo.")
+
+            if st.button("⬅️ Powrót do kroku 2 (Wyodrębnij audio)"):
+                st.session_state["step"] = "extract_audio"
+                st.experimental_rerun()
+
 else:
     st.info("Załaduj plik wideo, aby rozpocząć.")
