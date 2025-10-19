@@ -132,7 +132,7 @@ if st.session_state["step"] == "extract_audio" and uploaded:
             st.success("Audio wyodrębnione ✔️")
 
             st.session_state["step"] = "transcribe"
-            st.experimental_rerun()
+            st.rerun()
 
         except Exception as e:
             st.error(f"Wystąpił błąd: {e}")
@@ -162,7 +162,7 @@ elif st.session_state["step"] == "transcribe" and st.session_state["audio_path"]
 
     if st.button("⬅️ Powrót do kroku 2 (Wyodrębnij audio)"):
         st.session_state["step"] = "extract_audio"
-        st.experimental_rerun()
+        st.rerun()
 
 # ────────────────────────────────
 # Kiedy nic nie załadowano
