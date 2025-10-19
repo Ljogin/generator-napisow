@@ -158,4 +158,14 @@ elif st.session_state["step"] == "transcribe" and st.session_state["audio_path"]
             mime="text/plain",
         )
 
-        st.info("✅ Napisy zostały wygenerowane. Możesz wrócić i
+        st.info("✅ Napisy zostały wygenerowane. Możesz wrócić i przetworzyć kolejne wideo.")
+
+    if st.button("⬅️ Powrót do kroku 2 (Wyodrębnij audio)"):
+        st.session_state["step"] = "extract_audio"
+        st.experimental_rerun()
+
+# ────────────────────────────────
+# Kiedy nic nie załadowano
+# ────────────────────────────────
+elif not uploaded:
+    st.info("Załaduj plik wideo, aby rozpocząć.")
