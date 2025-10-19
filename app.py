@@ -6,7 +6,7 @@ from pathlib import Path
 
 import streamlit as st
 from pydub import AudioSegment
-from openai import OpenAI
+import openai
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 0) Konfiguracja kluczy i ffmpeg (działa w Streamlit Cloud oraz lokalnie)
@@ -47,7 +47,8 @@ if FFMPEG_DIR:
 warnings.filterwarnings("ignore", message="Couldn't find ffmpeg")
 warnings.filterwarnings("ignore", message="Couldn't find ffprobe")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai.api_key = OPENAI_API_KEY
+# client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -100,13 +101,7 @@ def transcribe_audio(audio_path: Path, response_format: str = "srt") -> str:
     """
     # OpenAI SDK v1 – audio.transcriptions.create
     with open(audio_path, "rb") as f:
-        transcription = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=f,
-            response_format=response_format,  # "srt" lub "text"
-            temperature=0.0,
-        )
-
+        transcription = openai.Audio.transcribe("whisper-1", f)
     # Zwracany typ to zwykle str dla "srt"/"text"
     return transcription if isinstance(transcription, str) else str(transcription)
 
