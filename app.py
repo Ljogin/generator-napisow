@@ -46,20 +46,24 @@ if FFMPEG_DIR:
 warnings.filterwarnings("ignore", message="Couldn't find ffmpeg")
 warnings.filterwarnings("ignore", message="Couldn't find ffprobe")
 
+# Inicjalizacja stanu aplikacji
+if "step" not in st.session_state:
+    st.session_state["step"] = "upload"
+
 # ──────────────────────────────────────────────────────────────────────────────
 # 1) UI + opis kroków
 # ──────────────────────────────────────────────────────────────────────────────
 st.title("🎬 Aplikacja Generowanie Napisów")
-st.caption("v1–v5: upload wideo → ekstrakcja audio → transkrypcja (Whisper) → edycja → pobranie")
+st.caption("v1–v5: upload wideo → ekstrakcja audio → transkrypcja (Whisper) → pobranie")
 
 with st.expander("Plan / Taski (specyfikacja)", expanded=False):
     st.markdown(
         """
 - **v1** – użytkownik może przesłać plik wideo i my go wyświetlamy  
 - **v2** – wyodrębniamy dźwięk z wideo i również go wyświetlamy  
-- **v3** – wykorzystujemy model speech-to-text w celu wygenerowania napisów i je wyświetlamy  
-- **v4** – napisy mogą być edytowane  
-- **v5** – poprawione napisy można pobrać jako plik  
+- **v3** – wykorzystujemy model speech-to-text w celu wygenerowania napisów  
+- **v4** – po transkrypcji można pobrać napisy  
+- **v5** – aplikacja wraca do kroku 2 po zakończeniu
         """
     )
 
@@ -93,7 +97,6 @@ def transcribe_audio(audio_path: Path, response_format: str = "srt") -> str:
 
 def bytes_for_download(text: str) -> bytes:
     return text.encode("utf-8")
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 3) Główna logika aplikacji
@@ -130,17 +133,19 @@ if uploaded:
                     captions = transcribe_audio(audio_mp3_path)
                 st.success("Transkrypcja zakończona ✔️")
 
-                st.subheader("4) Edytuj napisy")
-                edited = st.text_area("Napisy", value=captions, height=300)
-
-                st.subheader("5) Pobierz napisy")
-                default_name = "captions.srt" if resp_format == "srt" else "captions.txt"
+                # ✅ Zamiast edycji i dalszych kroków — tylko pobranie + powrót
                 st.download_button(
                     "⬇️ Pobierz napisy",
-                    bytes_for_download(edited),
-                    file_name=default_name,
+                    bytes_for_download(captions),
+                    file_name="captions.srt" if resp_format == "srt" else "captions.txt",
                     mime="text/plain",
                 )
+
+                st.info("✅ Napisy zostały wygenerowane. Możesz wrócić i przetworzyć kolejne wideo.")
+
+                if st.button("⬅️ Powrót do kroku 2 (Wyodrębnij audio)"):
+                    st.session_state["step"] = "extract_audio"
+                    st.experimental_rerun()
 
         except Exception as e:
             st.error(f"Wystąpił błąd: {e}")
